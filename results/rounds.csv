@@ -1,0 +1,11 @@
+run_id,round,n_presented,challenger_id,pool_before,pool_after,presentation_order,ranking,discarded_id,discarded_position,discarded_was_challenger,top_id,top_changed,sel_prompt_tokens,sel_completion_tokens,sel_reasoning_tokens,latency_seconds,cached,parse_status,parse_retries,raw_response
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,1,2,c001,c000,c001,c001;c000,c001;c000,c000,2,false,c001,true,917,14,0,0.533,false,ok,0,"RANKING: 1, 2 DISCARD: 2"
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,2,2,c002,c001,c002,c002;c001,c002;c001,c001,2,false,c002,true,922,13,0,0.563,false,ok,0,"RANKING: 1,2 DISCARD: 2"
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,3,2,c003,c002,c003,c003;c002,c003;c002,c002,2,false,c003,true,920,14,0,0.559,false,ok,0,"RANKING: 1, 2 DISCARD: 2"
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,4,2,c004,c003,c003,c004;c003,c003;c004,c004,1,true,c003,false,934,13,0,0.529,false,ok,0,"RANKING: 2,1 DISCARD: 1"
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,5,2,c005,c003,c003,c005;c003,c003;c005,c005,1,true,c003,false,904,13,0,0.54,false,ok,0,"RANKING: 2,1 DISCARD: 1"
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,6,2,c006,c003,c003,c003;c006,c003;c006,c006,2,true,c003,false,909,13,0,1.539,false,ok,0,"RANKING: 1,2 DISCARD: 2"
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,7,2,c007,c003,c007,c007;c003,c007;c003,c003,2,false,c007,true,916,14,0,1.332,false,ok,0,"RANKING: 1, 2 DISCARD: 2"
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,8,2,c008,c007,c007,c007;c008,c007;c008,c008,2,true,c007,false,914,14,0,1.223,false,ok,0,"RANKING: 1, 2 DISCARD: 2"
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,9,2,c009,c007,c007,c009;c007,c007;c009,c009,1,true,c007,false,895,13,0,1.351,false,ok,0,"RANKING: 2,1 DISCARD: 1"
+mars_boot__blind__n1__qwen-qwen3-235b-a22b-2507__s0,10,2,c010,c007,c010,c010;c007,c010;c007,c007,2,false,c010,true,943,14,0,1.416,false,ok,0,"RANKING: 1, 2 DISCARD: 2"

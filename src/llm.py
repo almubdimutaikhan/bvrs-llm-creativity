@@ -50,10 +50,12 @@ class Result:
 
 
 def api_key() -> str:
-    for name in _KEY_NAMES:
-        val = os.environ.get(name)
-        if val:
-            return val
+    """
+    First key found in _KEY_NAMES ORDER — not in whichever order .env happens to
+    list them. A .env holding both a Vercel gateway key and an OpenRouter key
+    will otherwise hand the Vercel key to the OpenRouter base URL and 401.
+    """
+    found = {}
     env = ROOT / ".env"
     if env.exists():
         for line in env.read_text().splitlines():
@@ -61,8 +63,12 @@ def api_key() -> str:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             k, v = line.split("=", 1)
-            if k.strip() in _KEY_NAMES:
-                return v.strip().strip('"').strip("'")
+            found[k.strip()] = v.strip().strip('"').strip("'")
+    found.update({k: v for k, v in os.environ.items() if v})  # env wins
+
+    for name in _KEY_NAMES:
+        if found.get(name):
+            return found[name]
     raise RuntimeError("No API key. Set AI_OPENROUTER_API_KEY in the "
                        "environment or in .env at the repo root.")
 

@@ -68,6 +68,7 @@ RUNS_COLUMNS = [
     "n_api_calls",
     "n_cached_calls",      # cached calls cost 0 and take ~0s — never mix them in
     "n_parse_failures",
+    "n_short_generations",      # concepts that came back empty/truncated
     "n_challenger_discarded",   # how often the newcomer died immediately
     "gen_prompt_sha",      # exact template used, without duplicating it per row
     "sel_prompt_sha",
@@ -91,6 +92,7 @@ CANDIDATES_COLUMNS = [
     "prompt_tokens",
     "completion_tokens",
     "reasoning_tokens",
+    "gen_retries",         # regenerated because the reply came back empty/short
     "latency_seconds",
     "cached",
     "died_round",          # "" if it survived to the end

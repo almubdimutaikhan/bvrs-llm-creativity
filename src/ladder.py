@@ -44,13 +44,18 @@ ROOT = Path(__file__).resolve().parent.parent
 PROMPTS = ROOT / "prompts"
 PROBLEMS = ROOT / "problems" / "problems.json"
 
-GEN_MAX_TOKENS = 700
+GEN_MAX_TOKENS = 900
 SEL_MAX_TOKENS = 400
+MIN_CONCEPT_WORDS = 80      # below this the generation is treated as failed
+MAX_GEN_RETRIES = 3
 
-# Hybrid-thinking models (Qwen3, GPT-5, ...) emit hundreds of hidden reasoning
-# tokens per call by default. This study's main chart plots quality against
-# tokens; leaving thinking on would make that axis measure how much the model
-# ruminated rather than what the ladder cost. Off by default, recorded either way.
+# Hybrid-thinking models emit hidden reasoning tokens that would dominate the
+# token axis this study plots quality against. Sent on every call -- but do NOT
+# rely on it: measured on qwen/qwen3-32b, OpenRouter routes across providers
+# with inconsistent support and only ~2 calls in 11 honoured it. The other 9
+# spent the whole completion budget thinking and returned an EMPTY concept,
+# which sailed into the pool as a blank. Hence MIN_CONCEPT_WORDS below, and
+# hence a generator with no thinking mode to get wrong.
 NO_THINKING = {"enabled": False}
 
 _TITLE = re.compile(r"^[\s*#]*TITLE\s*[:=]\s*(.+)$", re.I | re.M)
@@ -155,7 +160,7 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
 
     pool, everyone = [], []
     tally = {"gen_p": 0, "gen_c": 0, "sel_p": 0, "sel_c": 0,
-             "reasoning": 0, "calls": 0, "cached": 0}
+             "reasoning": 0, "calls": 0, "cached": 0, "short": 0}
     reasoning = None if thinking else NO_THINKING
 
     def generate(gen_index: int, born_round: int, origin: str) -> dict:
@@ -167,18 +172,27 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
             block, ctx_ids = _pool_block(pool, sighted_cap)
             user = gen_tpl.format(problem=problem["statement"], pool=block)
         cid = f"c{gen_index:03d}"
-        # Nonce is mandatory: the blind prompt is byte-identical every time.
-        res = chat(model, "", user, temperature=temperature,
-                   max_tokens=GEN_MAX_TOKENS, nonce=f"{run_id}|{cid}",
-                   reasoning=reasoning)
-        tally["gen_p"] += res.prompt_tokens
-        tally["gen_c"] += res.completion_tokens
-        tally["reasoning"] += res.reasoning_tokens
-        tally["calls"] += 1
-        tally["cached"] += int(res.cached)
+        # An empty or truncated reply must never enter the pool: it is not a bad
+        # concept, it is a missing one, and the judge will dutifully rank it last
+        # while the run still looks healthy. Retry, and record that we did.
+        retries = 0
+        for attempt in range(MAX_GEN_RETRIES):
+            # Nonce is mandatory: the blind prompt is byte-identical every time.
+            res = chat(model, "", user, temperature=temperature,
+                       max_tokens=GEN_MAX_TOKENS,
+                       nonce=f"{run_id}|{cid}|try{attempt}", reasoning=reasoning)
+            tally["gen_p"] += res.prompt_tokens
+            tally["gen_c"] += res.completion_tokens
+            tally["reasoning"] += res.reasoning_tokens
+            tally["calls"] += 1
+            tally["cached"] += int(res.cached)
+            title, body = parse_concept(res.text)
+            title, body = schema.flatten(title), schema.flatten(body)
+            retries = attempt
+            if len(body.split()) >= MIN_CONCEPT_WORDS:
+                break
+            tally["short"] += 1
 
-        title, body = parse_concept(res.text)
-        title, body = schema.flatten(title), schema.flatten(body)
         cand = {
             "run_id": run_id, "candidate_id": cid, "gen_index": gen_index,
             "origin": origin, "born_round": born_round, "arm": arm,
@@ -188,6 +202,7 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
             "prompt_tokens": res.prompt_tokens,
             "completion_tokens": res.completion_tokens,
             "reasoning_tokens": res.reasoning_tokens,
+            "gen_retries": retries,
             "latency_seconds": res.latency_seconds,
             "cached": str(res.cached).lower(),
             "died_round": "", "survived": "true",
@@ -324,6 +339,7 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
         "total_wall_seconds": round(time.time() - started, 2),
         "n_api_calls": tally["calls"], "n_cached_calls": tally["cached"],
         "n_parse_failures": parse_failures,
+        "n_short_generations": tally["short"],
         "n_challenger_discarded": challenger_discarded,
         "gen_prompt_sha": schema.sha256(gen_tpl)[:12],
         "sel_prompt_sha": schema.sha256(sel_tpl)[:12],
@@ -349,7 +365,7 @@ def main():
     ap.add_argument("--pool-size", type=int, default=1)
     ap.add_argument("--rounds", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--model", default="qwen/qwen3-32b")
+    ap.add_argument("--model", default="qwen/qwen3-235b-a22b-2507")
     ap.add_argument("--judge-model", default="google/gemini-2.5-flash")
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--sighted-cap", type=int, default=None,
