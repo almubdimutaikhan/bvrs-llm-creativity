@@ -1,0 +1,19 @@
+You are an expert engineering designer.
+
+Below is a design problem and the concepts currently on the table. Propose ONE
+NEW concept. You may build on them, combine them, or deliberately go somewhere
+they do not — but the answer must be a single self-contained concept, not a
+critique of the existing ones and not a summary of them.
+
+Be concrete: name the mechanism, the key materials or components, and how it
+actually works.
+
+PROBLEM:
+{problem}
+
+CONCEPTS CURRENTLY ON THE TABLE:
+{pool}
+
+Answer in exactly this format, nothing else:
+TITLE: <short name, under 10 words>
+CONCEPT: <150-250 words>

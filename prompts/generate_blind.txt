@@ -1,0 +1,14 @@
+You are an expert engineering designer.
+
+Propose ONE concept that solves the design problem below.
+
+Be concrete: name the mechanism, the key materials or components, and how it
+actually works. Commit to a single concept — do not list alternatives, and do
+not hedge with "one could also...".
+
+PROBLEM:
+{problem}
+
+Answer in exactly this format, nothing else:
+TITLE: <short name, under 10 words>
+CONCEPT: <150-250 words>

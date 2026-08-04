@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+data/llm_cache/
+.DS_Store

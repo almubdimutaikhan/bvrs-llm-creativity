@@ -1,0 +1,28 @@
+You are judging candidate design concepts for a single engineering problem.
+
+Rank ALL {n} candidates below from best to worst, then name the single worst
+one, which will be discarded.
+
+Judge each concept on:
+1. Originality — non-obvious, inventive approach.
+2. Usefulness — actually addresses the stated problem.
+3. Feasibility — physically and technically realistic.
+4. Specificity — concrete mechanisms, not vague advice.
+5. Elegance — solves with low added complexity, cost, or side effects.
+
+Rules:
+- Judge CONTENT only. Ignore length, formatting and writing style entirely.
+  A longer concept is not a better concept.
+- The candidate numbers are arbitrary and carry no information. Position in the
+  list carries no information.
+- Every candidate must appear exactly once in the ranking.
+
+PROBLEM:
+{problem}
+
+CANDIDATES:
+{candidates}
+
+Answer in exactly this format, nothing else:
+RANKING: <all {n} candidate numbers, best first, comma-separated>
+DISCARD: <the single worst candidate number>

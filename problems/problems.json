@@ -1,0 +1,11 @@
+{
+ "_note": "Design briefs. The study runs ONE problem at a time on purpose: with a single brief the replicate (seed) is the unit of analysis, which gives real n without needing many cases. Generalisation across problems is a separate study.",
+ "problems": [
+  {
+   "id": "mars_boot",
+   "name": "Mars Haptic Boot",
+   "source": "case 029 of the sibling TRIZ-2AFC study casebase",
+   "statement": "Astronauts exploring Mars wear pressurized boots whose thick, rigid, insulated soles protect their feet from extreme cold, near-vacuum, and sharp abrasive dust. The same soles cut off nearly all ground sensation, so on uneven rocky terrain in reduced gravity astronauts cannot judge their footing and stumble easily. Design a haptic space boot for Mars exploration that lets the wearer clearly feel the terrain underfoot while keeping full environmental protection, without making the boot bulky or tiring to walk in."
+  }
+ ]
+}
