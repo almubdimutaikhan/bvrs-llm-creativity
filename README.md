@@ -101,20 +101,23 @@ Three tables, joined on `run_id` and `(run_id, candidate_id)`.
 | `results/candidates.csv` | one concept | generation metadata, length, fate, score |
 | `results/rounds.csv` | one selection | who was shown, in what order, who died, cost |
 
-**Concept text never enters a CSV.** It goes to
-`results/candidates/<run_id>/<candidate_id>.md`, and the row carries a path plus
-a `text_sha256`. Design concepts contain newlines, commas, quotes and markdown;
-putting them in cells is what forces "flatten the CSV" repairs later. The
-problem statement lives once in `problems/problems.json` and rows reference it by
-`problem_id`; prompt templates live in `prompts/` and rows carry a
-`gen_prompt_sha` / `sel_prompt_sha`. Nothing large is ever duplicated per row.
+**CSV only — no side files.** The concept itself is in `candidates.text` and the
+judge's verbatim reply is in `rounds.raw_response`. That is safe because
+`append_row` whitespace-flattens *every* value on the way out, so a row can never
+span more than one physical line no matter what the model returns. `text_sha256`
+hashes the stored string, so it verifies from the CSV alone — and repeated hashes
+are the fastest way to catch a generator that has started repeating itself.
+
+What still stays out of the rows: the problem statement (identical in every row)
+lives once in `problems/problems.json`, referenced by `problem_id`; prompt
+templates live in `prompts/`, referenced by `gen_prompt_sha` / `sel_prompt_sha`.
+Pool membership is recorded as ID lists, never as text.
 
 Full column lists and the reasoning are in [`src/schema.py`](src/schema.py).
 
-**Nothing is ever really deleted.** Discarded concepts stay on disk with
-`died_round` set, and every judge response is kept under `results/raw/`. The
-elimination can therefore be re-analysed later under a different rule without
-spending a cent.
+**Nothing is ever really deleted.** Discarded concepts keep their row with
+`died_round` set, and every judge reply is retained. The elimination can
+therefore be re-analysed later under a different rule without spending a cent.
 
 ---
 

@@ -152,10 +152,6 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
     gen_tpl = _read("generate_blind.txt" if arm == "blind"
                     else "generate_sighted.txt")
     sel_tpl = _read("select.txt")
-    text_dir = schema.TEXT_DIR / run_id
-    text_dir.mkdir(parents=True, exist_ok=True)
-    raw_dir = schema.RESULTS / "raw" / run_id
-    raw_dir.mkdir(parents=True, exist_ok=True)
 
     pool, everyone = [], []
     tally = {"gen_p": 0, "gen_c": 0, "sel_p": 0, "sel_c": 0,
@@ -182,8 +178,7 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
         tally["cached"] += int(res.cached)
 
         title, body = parse_concept(res.text)
-        (text_dir / f"{cid}.md").write_text(
-            f"# {title}\n\n{body}\n", encoding="utf-8")
+        title, body = schema.flatten(title), schema.flatten(body)
         cand = {
             "run_id": run_id, "candidate_id": cid, "gen_index": gen_index,
             "origin": origin, "born_round": born_round, "arm": arm,
@@ -197,7 +192,6 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
             "cached": str(res.cached).lower(),
             "died_round": "", "survived": "true",
             "rounds_present": 0, "rank_score": 0.0, "_points": [],
-            "text_path": str((text_dir / f"{cid}.md").relative_to(schema.RESULTS)),
             "text_sha256": schema.sha256(body),
         }
         everyone.append(cand)
@@ -257,8 +251,6 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
             if status != "failed":
                 break
 
-        (raw_dir / f"round{rnd:02d}.txt").write_text(raw, encoding="utf-8")
-
         if status == "failed":
             parse_failures += 1
             discard_idx = random.Random(
@@ -301,16 +293,14 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
             "latency_seconds": sel_latency,
             "cached": str(sel_cached).lower(),
             "parse_status": status, "parse_retries": retries,
-            "raw_response_path": str(
-                (raw_dir / f"round{rnd:02d}.txt").relative_to(schema.RESULTS)),
+            "raw_response": raw,
         })
         prev_top = top["candidate_id"]
 
     # ---- write candidates
     for c in everyone:
         schema.append_row(schema.CANDIDATES_CSV, schema.CANDIDATES_COLUMNS,
-                          {k: v for k, v in c.items()
-                           if k not in ("text", "_points")})
+                          {k: v for k, v in c.items() if k != "_points"})
 
     final = max(pool, key=lambda c: (c["rank_score"], -c["gen_index"]))
     row = {

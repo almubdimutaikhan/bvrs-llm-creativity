@@ -8,16 +8,21 @@ THREE tables, not one, joined on (run_id) and (run_id, candidate_id):
   candidates.csv  one row per concept     — generation metadata + where the text is
   rounds.csv      one row per selection   — who was shown, who died, what it cost
 
-Why not one flat file:
-  - The problem statement is ~150 words and identical in every row. Flat CSV
-    duplicates it thousands of times; here it lives in problems/problems.json
-    and rows carry `problem_id`.
-  - `left_over_solutions` as one cell holding 40 concepts is unreadable,
-    unparseable and breaks on the first embedded comma.
-  - CONCEPT TEXT NEVER ENTERS A CSV. It goes to
-    results/candidates/<run_id>/<candidate_id>.md and the row carries a path and
-    a sha256. Design concepts contain newlines, commas, quotes and markdown —
-    embedding them is what forces "flatten the CSV" repairs later.
+CSV only — no side files. Concept text lives in candidates.text and the judge's
+raw reply lives in rounds.raw_response.
+
+That is safe here only because of one rule, enforced in append_row rather than
+left to callers: EVERY value is whitespace-flattened before it is written, so a
+row can never span more than one physical line. Design concepts arrive full of
+newlines and markdown; flattening at write time is what stops the CSV needing
+repair later. `text_sha256` hashes the stored (flattened) string, so it can be
+verified from the CSV alone — and identical hashes across rows are the fastest
+way to catch a generator that has started repeating itself.
+
+Still kept out of the rows: the problem statement (~150 words, identical
+everywhere) lives once in problems/problems.json, referenced by `problem_id`;
+prompt templates live in prompts/, referenced by `gen_prompt_sha` /
+`sel_prompt_sha`. Pool contents are ID lists, never text.
 
 Conventions: snake_case; units in the name (_tokens, _seconds); ISO-8601 UTC
 timestamps; booleans as true/false; ID lists joined with ";"; empty string for
@@ -25,6 +30,7 @@ not-applicable.
 """
 import csv
 import hashlib
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,7 +39,6 @@ RESULTS = ROOT / "results"
 RUNS_CSV = RESULTS / "runs.csv"
 CANDIDATES_CSV = RESULTS / "candidates.csv"
 ROUNDS_CSV = RESULTS / "rounds.csv"
-TEXT_DIR = RESULTS / "candidates"
 
 # --- one row per run -------------------------------------------------------
 RUNS_COLUMNS = [
@@ -92,8 +97,8 @@ CANDIDATES_COLUMNS = [
     "survived",
     "rounds_present",      # how many selections it faced
     "rank_score",          # mean normalised rank (1.0 best, 0.0 worst)
-    "text_path",           # relative to results/
-    "text_sha256",
+    "text",                # the concept itself, whitespace-flattened
+    "text_sha256",         # of the stored string; equal hashes = repeated output
 ]
 
 # --- one row per selection event ------------------------------------------
@@ -118,8 +123,17 @@ ROUNDS_COLUMNS = [
     "cached",
     "parse_status",            # ok | discard_only | failed
     "parse_retries",
-    "raw_response_path",   # judge's raw output, for audit
+    "raw_response",        # judge's reply verbatim (flattened), for audit
 ]
+
+
+_WHITESPACE = re.compile(r"\s+")
+
+
+def flatten(text) -> str:
+    """Collapse every whitespace run to a single space. One physical line per
+    CSV row, guaranteed rather than hoped for."""
+    return _WHITESPACE.sub(" ", str(text)).strip()
 
 
 def sha256(text: str) -> str:
@@ -128,11 +142,14 @@ def sha256(text: str) -> str:
 
 def append_row(path: Path, columns: list, row: dict) -> None:
     """Append one row, writing the header if the file is new. Flushes each row
-    so an interrupted run keeps everything it already paid for."""
+    so an interrupted run keeps everything it already paid for.
+
+    Every value is flattened on the way out, so no caller can accidentally emit
+    a multi-line row."""
     path.parent.mkdir(parents=True, exist_ok=True)
     new = not path.exists()
     with path.open("a", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=columns, extrasaction="raise")
         if new:
             w.writeheader()
-        w.writerow({c: row.get(c, "") for c in columns})
+        w.writerow({c: flatten(row.get(c, "")) for c in columns})
