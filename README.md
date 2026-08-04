@@ -157,9 +157,12 @@ More than half of that budget is `sighted, n=40`, where each generation carries
 
 ## Status
 
-Code is written, passes an offline end-to-end test, and **two smoke ladders have
-run** (blind and sighted, n=1, 10 rounds, one seed each). The sweep has not run.
-Nothing below is a result — one seed on one problem is a pilot, not evidence.
+Code is written, passes an offline end-to-end test, and **the full sweep has now
+run** (50 runs, 1,607 calls, ≈$1.12 — see [`RESULTS.md`](RESULTS.md) for the
+write-up). Headline: the sweep does not answer the research question, because
+the selector was mostly echoing presentation order rather than judging content.
+The pilot observations below predate the sweep and are what justified running
+it; where they overlap with `RESULTS.md`, that document supersedes them.
 
 **Pilot observations, in descending order of how much they should worry us:**
 
@@ -189,6 +192,56 @@ Nothing below is a result — one seed on one problem is a pilot, not evidence.
 providers (~2 calls in 11 on `qwen3-32b`). `openai/gpt-5` refuses to disable
 reasoning at all and is unusable here. Hence a non-thinking generator plus a
 hard minimum-length regeneration guard.
+
+### Example ladder — n=1, n=2, n=3 (blind arm, seed 1)
+
+A concrete trace of the mechanism, not a result. §3 of `RESULTS.md` found the
+selector mostly echoed presentation order, so *which candidate wins* below
+reflects that bug as much as content — read it for pool composition and
+generator homogeneity, not for evidence about selection pressure. Each table
+shows the first 3 of the run's 10 rounds; `n+1` candidates are shown to the
+judge each round (the pool of `n` plus the new challenger) and the
+lowest-ranked one is discarded.
+
+**n = 1** — pool of 1, judge sees 2 candidates each round
+
+| round | challenger | discarded | winner after round |
+|---|---|---|---|
+| 1 | c001 *"Sensory Sole Haptic Feedback System"* | c000 *"Tactile Pressure Relay Boot"* | c001 |
+| 2 | c002 *"TactileSense Mars Boot"* | c002 *"TactileSense Mars Boot"* | c001 |
+| 3 | c003 *"Sensory Sole"* | c003 *"Sensory Sole"* | c001 |
+
+**Final solution (round 10, `c001`): "Sensory Sole Haptic Feedback System"** — "The
+Sensory Sole integrates a thin, multi-layered haptic feedback system within the
+boot's rigid structure to transmit ground texture and pressure cues to the
+astronaut's foot without compromising environmental protection."
+
+**n = 2** — pool of 2, judge sees 3 candidates each round
+
+| round | challenger | discarded | winner after round |
+|---|---|---|---|
+| 1 | c002 *"Sensory Sole"* | c000 *"Sensory Conduit Boot"* | c002 |
+| 2 | c003 *"SensoryCore Haptic Boot"* | c001 *"Sensory Conduit Boot"* | c003 |
+| 3 | c004 *"Sensory Sole Haptic Boot"* | c004 *"Sensory Sole Haptic Boot"* | c002 |
+
+**Final solution (round 10, `c010`): "Sensory Sole"** — "The Sensory Sole
+integrates a thin, flexible piezoelectric sensor array into the inner top layer
+of the boot's rigid sole, directly beneath the footbed."
+
+**n = 3** — pool of 3, judge sees 4 candidates each round
+
+| round | challenger | discarded | winner after round |
+|---|---|---|---|
+| 1 | c003 *"Sensory Link Sole"* | c001 *(parse failure — model refused the requested output format)* | c003 |
+| 2 | c004 *"Sensory Conduit Boot"* | c004 *"Sensory Conduit Boot"* | c002 |
+| 3 | c005 *"TactileLink Sole"* | c005 *"TactileLink Sole"* | c002 |
+
+**Final solution (round 10, `c012`): "Sensory Sole Haptic Feedback System"** —
+opens with the identical sentence to `c001` above, word-for-word, under a
+different `text_sha256` — the near-duplication in §5, not a caching artifact.
+
+Full text, every round, every seed: `results/candidates.csv` and
+`results/rounds.csv`, filtered to `run_id` matching `blind__n{1,2,3}...s1`.
 
 ## Scope, stated plainly
 
