@@ -1,0 +1,34 @@
+A design brief and two candidate concepts, A and B, are given below.
+
+Score each ON ITS OWN MERITS first, independently of the other, then pick the
+more creative one from the scores.
+
+Score each 0-10 for overall creativity, judging against:
+1. Originality — non-obvious, inventive approach.
+2. Usefulness — actually addresses the brief.
+3. Feasibility — physically and technically realistic.
+4. Specificity — concrete mechanisms, not vague advice.
+5. Elegance — solves with low added complexity, cost, or side effects.
+
+Rules:
+- Score using ONLY the content. A concept's score must be the SAME whether it is
+  labelled A or B — the labels are random and mean nothing.
+- Ignore position, order, length, formatting and writing style entirely. A longer
+  concept is not a better concept.
+- The more creative one is simply the one with the higher score.
+- If and only if the scores are exactly equal, break the tie toward the more
+  concrete and feasible mechanism — never by position.
+
+BRIEF:
+{problem}
+
+CONCEPT A:
+{a}
+
+CONCEPT B:
+{b}
+
+Answer in exactly this format, one item per line, nothing else:
+SCORE A: <0-10>
+SCORE B: <0-10>
+ANSWER: A
