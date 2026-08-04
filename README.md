@@ -157,9 +157,38 @@ More than half of that budget is `sighted, n=40`, where each generation carries
 
 ## Status
 
-Code is written and passes an offline end-to-end test. **No API calls have been
-made and `results/` is empty.** There are no findings in this README — only a
-design.
+Code is written, passes an offline end-to-end test, and **two smoke ladders have
+run** (blind and sighted, n=1, 10 rounds, one seed each). The sweep has not run.
+Nothing below is a result — one seed on one problem is a pilot, not evidence.
+
+**Pilot observations, in descending order of how much they should worry us:**
+
+1. **Blind variation is not blind.** Eleven independent generations — fresh
+   context, no shared state, temperature 0.9 — returned the same concept eleven
+   times: piezoelectric sensors in the sole driving actuators. 11/11 mention
+   piezo, sensors, sole and pressure; every title is a variant of "Sensory Sole".
+   This is Simonton's prediction landing squarely: high `p`, high `v`, so
+   sightedness is high and `c = (1−p)u(1−v)` is small. It is also a threat to the
+   design — if every candidate is the same idea, selection has nothing to select
+   on and the pool-size sweep will be flat *by construction*, indistinguishable
+   from a real null. A diversity measure is therefore load-bearing, not optional.
+
+2. **A better model does not fix it.** Across four generators × 8 blind
+   generations, Claude Sonnet 5 was the most *reliable* (8/8 well-formed) and the
+   most *convergent* — six of eight titles began with the word "Pneumatic".
+   Gemini 2.5 Flash was narrower still. Homogeneity is not a weak-model artifact.
+
+3. **Sighted may already be losing.** In the sighted ladder the challenger was
+   discarded in 9 of 10 rounds and the round-1 winner survived to the end;
+   blind turned over five times. Direction consistent with Huang et al., but this
+   is n=1 and the incumbent may simply have been strong.
+
+**Operational lessons already paid for:** hybrid-thinking models silently return
+*empty* concepts when reasoning eats the completion budget, and
+`reasoning:{enabled:false}` is honoured inconsistently across OpenRouter
+providers (~2 calls in 11 on `qwen3-32b`). `openai/gpt-5` refuses to disable
+reasoning at all and is unusable here. Hence a non-thinking generator plus a
+hard minimum-length regeneration guard.
 
 ## Scope, stated plainly
 

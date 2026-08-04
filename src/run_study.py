@@ -64,7 +64,7 @@ def main():
                     choices=["blind", "sighted"])
     ap.add_argument("--seeds", type=int, default=5, help="replicates per cell")
     ap.add_argument("--rounds", type=int, default=10)
-    ap.add_argument("--model", default="qwen/qwen3-235b-a22b-2507")
+    ap.add_argument("--model", default="anthropic/claude-sonnet-5")
     ap.add_argument("--judge-model", default="google/gemini-2.5-flash")
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--sighted-cap", type=int, default=None)
