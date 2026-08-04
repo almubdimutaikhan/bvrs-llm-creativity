@@ -31,7 +31,11 @@ not-applicable.
 import csv
 import hashlib
 import re
+import threading
 from pathlib import Path
+
+# Runs execute concurrently and all of them append to the same three files.
+_WRITE_LOCK = threading.Lock()
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "results"
@@ -148,10 +152,12 @@ def append_row(path: Path, columns: list, row: dict) -> None:
 
     Every value is flattened on the way out, so no caller can accidentally emit
     a multi-line row."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    new = not path.exists()
-    with path.open("a", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=columns, extrasaction="raise")
-        if new:
-            w.writeheader()
-        w.writerow({c: flatten(row.get(c, "")) for c in columns})
+    payload = {c: flatten(row.get(c, "")) for c in columns}
+    with _WRITE_LOCK:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        new = not path.exists()
+        with path.open("a", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=columns, extrasaction="raise")
+            if new:
+                w.writeheader()
+            w.writerow(payload)

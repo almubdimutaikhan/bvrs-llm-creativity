@@ -365,9 +365,9 @@ def main():
     ap.add_argument("--pool-size", type=int, default=1)
     ap.add_argument("--rounds", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--model", default="anthropic/claude-sonnet-5")
-    ap.add_argument("--judge-model", default="google/gemini-2.5-flash")
-    ap.add_argument("--temperature", type=float, default=0.9)
+    ap.add_argument("--model", default="qwen/qwen3-235b-a22b-2507")
+    ap.add_argument("--judge-model", default="deepseek/deepseek-chat-v3.1")
+    ap.add_argument("--temperature", type=float, default=0.7)
     ap.add_argument("--sighted-cap", type=int, default=None,
                     help="max concepts shown to a sighted generator")
     ap.add_argument("--thinking", action="store_true",
