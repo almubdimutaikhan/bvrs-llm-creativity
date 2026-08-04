@@ -57,6 +57,7 @@ RUNS_COLUMNS = [
     "gen_completion_tokens",
     "sel_prompt_tokens",
     "sel_completion_tokens",
+    "total_reasoning_tokens",  # hidden thinking. Must be 0 unless deliberately on
     "total_tokens",
     "total_wall_seconds",
     "n_api_calls",
@@ -84,6 +85,7 @@ CANDIDATES_COLUMNS = [
     "char_count",
     "prompt_tokens",
     "completion_tokens",
+    "reasoning_tokens",
     "latency_seconds",
     "cached",
     "died_round",          # "" if it survived to the end
@@ -111,6 +113,7 @@ ROUNDS_COLUMNS = [
     "top_changed",
     "sel_prompt_tokens",       # summed over retries, not just the winning try
     "sel_completion_tokens",
+    "sel_reasoning_tokens",
     "latency_seconds",
     "cached",
     "parse_status",            # ok | discard_only | failed

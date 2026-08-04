@@ -47,6 +47,12 @@ PROBLEMS = ROOT / "problems" / "problems.json"
 GEN_MAX_TOKENS = 700
 SEL_MAX_TOKENS = 400
 
+# Hybrid-thinking models (Qwen3, GPT-5, ...) emit hundreds of hidden reasoning
+# tokens per call by default. This study's main chart plots quality against
+# tokens; leaving thinking on would make that axis measure how much the model
+# ruminated rather than what the ladder cost. Off by default, recorded either way.
+NO_THINKING = {"enabled": False}
+
 _TITLE = re.compile(r"^[\s*#]*TITLE\s*[:=]\s*(.+)$", re.I | re.M)
 _CONCEPT = re.compile(r"^[\s*#]*CONCEPT\s*[:=]\s*(.*)\Z", re.I | re.M | re.S)
 _RANKING = re.compile(r"RANKING\s*[:=]\s*\**\s*([0-9][0-9,\s]*)", re.I)
@@ -136,7 +142,7 @@ def _pool_block(pool: list, cap) -> tuple[str, list]:
 
 def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
         rounds: int, seed: int, temperature: float = 0.9,
-        sighted_cap=None, notes: str = "") -> dict:
+        sighted_cap=None, thinking: bool = False, notes: str = "") -> dict:
 
     assert arm in ("blind", "sighted")
     run_id = (f"{problem['id']}__{arm}__n{pool_size}__"
@@ -153,7 +159,8 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
 
     pool, everyone = [], []
     tally = {"gen_p": 0, "gen_c": 0, "sel_p": 0, "sel_c": 0,
-             "calls": 0, "cached": 0}
+             "reasoning": 0, "calls": 0, "cached": 0}
+    reasoning = None if thinking else NO_THINKING
 
     def generate(gen_index: int, born_round: int, origin: str) -> dict:
         if arm == "blind" or not pool:
@@ -166,9 +173,11 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
         cid = f"c{gen_index:03d}"
         # Nonce is mandatory: the blind prompt is byte-identical every time.
         res = chat(model, "", user, temperature=temperature,
-                   max_tokens=GEN_MAX_TOKENS, nonce=f"{run_id}|{cid}")
+                   max_tokens=GEN_MAX_TOKENS, nonce=f"{run_id}|{cid}",
+                   reasoning=reasoning)
         tally["gen_p"] += res.prompt_tokens
         tally["gen_c"] += res.completion_tokens
+        tally["reasoning"] += res.reasoning_tokens
         tally["calls"] += 1
         tally["cached"] += int(res.cached)
 
@@ -183,6 +192,7 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
             "word_count": len(body.split()), "char_count": len(body),
             "prompt_tokens": res.prompt_tokens,
             "completion_tokens": res.completion_tokens,
+            "reasoning_tokens": res.reasoning_tokens,
             "latency_seconds": res.latency_seconds,
             "cached": str(res.cached).lower(),
             "died_round": "", "survived": "true",
@@ -222,7 +232,7 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
         raw = ""
         sel_latency = 0.0
         sel_cached = True
-        round_p = round_c = 0
+        round_p = round_c = round_r = 0
         for attempt in range(3):
             suffix = "" if attempt == 0 else (
                 f"\n\nYour previous answer did not parse. Output ONLY the two "
@@ -230,13 +240,16 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
                 f"exactly once.")
             res = chat(judge_model, "", user + suffix, temperature=0.0,
                        max_tokens=SEL_MAX_TOKENS,
-                       nonce=f"{run_id}|round{rnd}|try{attempt}")
+                       nonce=f"{run_id}|round{rnd}|try{attempt}",
+                       reasoning=reasoning)
             tally["sel_p"] += res.prompt_tokens
             tally["sel_c"] += res.completion_tokens
+            tally["reasoning"] += res.reasoning_tokens
             tally["calls"] += 1
             tally["cached"] += int(res.cached)
             round_p += res.prompt_tokens
             round_c += res.completion_tokens
+            round_r += res.reasoning_tokens
             raw, sel_latency = res.text, res.latency_seconds
             sel_cached = sel_cached and res.cached
             ranking, discard_idx, status = parse_selection(res.text, n)
@@ -284,6 +297,7 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
             "top_changed": str(prev_top != top["candidate_id"]).lower(),
             "sel_prompt_tokens": round_p,
             "sel_completion_tokens": round_c,
+            "sel_reasoning_tokens": round_r,
             "latency_seconds": sel_latency,
             "cached": str(sel_cached).lower(),
             "parse_status": status, "parse_retries": retries,
@@ -315,6 +329,7 @@ def run(problem: dict, model: str, judge_model: str, arm: str, pool_size: int,
         "gen_completion_tokens": tally["gen_c"],
         "sel_prompt_tokens": tally["sel_p"],
         "sel_completion_tokens": tally["sel_c"],
+        "total_reasoning_tokens": tally["reasoning"],
         "total_tokens": sum(tally[k] for k in ("gen_p", "gen_c", "sel_p", "sel_c")),
         "total_wall_seconds": round(time.time() - started, 2),
         "n_api_calls": tally["calls"], "n_cached_calls": tally["cached"],
@@ -344,11 +359,14 @@ def main():
     ap.add_argument("--pool-size", type=int, default=1)
     ap.add_argument("--rounds", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--model", default="google/gemini-2.5-flash")
-    ap.add_argument("--judge-model", default="deepseek/deepseek-chat-v3.1")
+    ap.add_argument("--model", default="qwen/qwen3-32b")
+    ap.add_argument("--judge-model", default="google/gemini-2.5-flash")
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--sighted-cap", type=int, default=None,
                     help="max concepts shown to a sighted generator")
+    ap.add_argument("--thinking", action="store_true",
+                    help="allow hidden reasoning tokens (off by default: they "
+                         "would dominate the token axis)")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
@@ -363,12 +381,14 @@ def main():
         return
 
     row = run(problem, a.model, a.judge_model, a.arm, a.pool_size, a.rounds,
-              a.seed, a.temperature, a.sighted_cap)
+              a.seed, a.temperature, a.sighted_cap, a.thinking)
     print(f"\n{row['run_id']}")
     print(f"  final          : {row['final_candidate_id']}")
     print(f"  tokens         : {row['total_tokens']}  "
           f"(gen {row['gen_prompt_tokens'] + row['gen_completion_tokens']}, "
           f"sel {row['sel_prompt_tokens'] + row['sel_completion_tokens']})")
+    print(f"  reasoning      : {row['total_reasoning_tokens']}  "
+          f"(expect 0 unless --thinking)")
     print(f"  wall seconds   : {row['total_wall_seconds']}  "
           f"({row['n_cached_calls']}/{row['n_api_calls']} cached)")
     print(f"  parse failures : {row['n_parse_failures']}")

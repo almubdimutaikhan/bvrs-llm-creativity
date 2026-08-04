@@ -64,10 +64,11 @@ def main():
                     choices=["blind", "sighted"])
     ap.add_argument("--seeds", type=int, default=5, help="replicates per cell")
     ap.add_argument("--rounds", type=int, default=10)
-    ap.add_argument("--model", default="google/gemini-2.5-flash")
-    ap.add_argument("--judge-model", default="deepseek/deepseek-chat-v3.1")
+    ap.add_argument("--model", default="qwen/qwen3-32b")
+    ap.add_argument("--judge-model", default="google/gemini-2.5-flash")
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--sighted-cap", type=int, default=None)
+    ap.add_argument("--thinking", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
@@ -107,10 +108,12 @@ def main():
             print(f"[{i}/{len(cells)}] skip {run_id}")
             continue
         row = ladder.run(problem, a.model, a.judge_model, arm, n, a.rounds,
-                         seed, a.temperature, a.sighted_cap)
+                         seed, a.temperature, a.sighted_cap, a.thinking)
         flag = ""
         if row["n_parse_failures"]:
             flag += f"  [!] {row['n_parse_failures']} parse failures"
+        if row["total_reasoning_tokens"]:
+            flag += f"  [!] {row['total_reasoning_tokens']} reasoning tokens"
         if row["n_challenger_discarded"] == a.rounds:
             flag += "  [!] challenger died every round"
         print(f"[{i}/{len(cells)}] {run_id}  "

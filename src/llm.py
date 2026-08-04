@@ -42,6 +42,7 @@ class Result:
     latency_seconds: float
     cached: bool
     model: str
+    reasoning_tokens: int = 0
 
     @property
     def total_tokens(self) -> int:
@@ -73,15 +74,28 @@ def _cache_key(model, system, user, params, nonce) -> str:
 
 
 def chat(model: str, system: str, user: str, temperature: float = 0.9,
-         max_tokens: int = 1200, nonce: str = "", timeout: int = 180) -> Result:
-    """One chat completion. Disk-cached on (model, prompts, params, nonce)."""
+         max_tokens: int = 1200, nonce: str = "", timeout: int = 180,
+         reasoning=None) -> Result:
+    """
+    One chat completion. Disk-cached on (model, prompts, params, nonce).
+
+    `reasoning` is passed through to the gateway. Hybrid-thinking models
+    (Qwen3, GPT-5, ...) otherwise emit hundreds of hidden reasoning tokens per
+    call, which would dominate the token axis this study plots quality against —
+    the x-axis would become "how much did the model think", not "what did the
+    ladder cost". Callers should pass {"enabled": False} unless testing that.
+    Whatever is emitted is recorded in Result.reasoning_tokens either way.
+    """
     params = {"temperature": temperature, "max_tokens": max_tokens}
+    if reasoning is not None:
+        params["reasoning"] = reasoning
     key = _cache_key(model, system, user, params, nonce)
     path = CACHE_DIR / f"{key}.json"
     if path.exists():
         d = json.loads(path.read_text())
         return Result(d["text"], d["prompt_tokens"], d["completion_tokens"],
-                      d["latency_seconds"], True, model)
+                      d["latency_seconds"], True, model,
+                      d.get("reasoning_tokens", 0))
 
     messages = ([{"role": "system", "content": system}] if system else []) \
         + [{"role": "user", "content": user}]
@@ -104,13 +118,16 @@ def chat(model: str, system: str, user: str, temperature: float = 0.9,
             body = r.json()
             text = body["choices"][0]["message"].get("content") or ""
             usage = body.get("usage") or {}
+            details = usage.get("completion_tokens_details") or {}
             res = Result(text, int(usage.get("prompt_tokens", 0)),
                          int(usage.get("completion_tokens", 0)),
-                         latency, False, model)
+                         latency, False, model,
+                         int(details.get("reasoning_tokens", 0)))
             CACHE_DIR.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(
                 {"text": res.text, "prompt_tokens": res.prompt_tokens,
                  "completion_tokens": res.completion_tokens,
+                 "reasoning_tokens": res.reasoning_tokens,
                  "latency_seconds": res.latency_seconds,
                  "model": model, "nonce": nonce}, ensure_ascii=False))
             return res
