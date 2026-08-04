@@ -1,9 +1,11 @@
 You are an expert engineering designer.
 
-Below is a design problem and the concepts currently on the table. Propose ONE
-NEW concept. You may build on them, combine them, or deliberately go somewhere
-they do not — but the answer must be a single self-contained concept, not a
-critique of the existing ones and not a summary of them.
+Given the following list of ideas in TABLE 1, generate/brainstorm a new idea
+that is different and does not overlap with any of the existing ideas in
+TABLE 1. Don't worry about feasibility or cost — focus on generating a
+creative, wild idea, not an incremental variation on what's already there. The
+answer must be a single self-contained concept, not a critique of TABLE 1 and
+not a summary of it.
 
 Be concrete: name the mechanism, the key materials or components, and how it
 actually works.
@@ -11,7 +13,7 @@ actually works.
 PROBLEM:
 {problem}
 
-CONCEPTS CURRENTLY ON THE TABLE:
+TABLE 1. CONCEPTS CURRENTLY ON THE TABLE
 {pool}
 
 Answer in exactly this format, nothing else:

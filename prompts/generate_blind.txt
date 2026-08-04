@@ -1,6 +1,11 @@
 You are an expert engineering designer.
 
-Propose ONE concept that solves the design problem below.
+SEED IDEA: Piezo Boots — piezoelectric sensors in the boot sole feeding
+haptic actuators against the foot.
+
+Propose ONE concept that solves the design problem below, built from that seed
+idea. Put your own spin on the mechanism, materials, or placement — do not
+just restate the seed idea verbatim.
 
 Be concrete: name the mechanism, the key materials or components, and how it
 actually works. Commit to a single concept — do not list alternatives, and do

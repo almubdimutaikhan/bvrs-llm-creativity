@@ -30,8 +30,8 @@ import ladder
 import schema
 from llm import chat
 
-JUDGES = ["deepseek/deepseek-chat-v3.1",      # the one used in the sweep
-          "google/gemini-2.5-flash",
+JUDGES = ["deepseek/deepseek-chat-v3.1",      # sweep #1's judge
+          "google/gemini-2.5-flash",         # sweep #2 onward, per this probe
           "anthropic/claude-sonnet-5",
           "openai/gpt-4o"]
 POOL_SIZES = [6, 41]        # n_presented values to sample

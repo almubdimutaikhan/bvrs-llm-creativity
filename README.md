@@ -240,8 +240,9 @@ of the boot's rigid sole, directly beneath the footbed."
 opens with the identical sentence to `c001` above, word-for-word, under a
 different `text_sha256` — the near-duplication in §5, not a caching artifact.
 
-Full text, every round, every seed: `results/candidates.csv` and
-`results/rounds.csv`, filtered to `run_id` matching `blind__n{1,2,3}...s1`.
+Full text, every round, every seed: `archived/sweep1/candidates.csv` and
+`archived/sweep1/rounds.csv` (this example predates the seeded-prompt change
+below), filtered to `run_id` matching `blind__n{1,2,3}...s1`.
 
 ## Scope, stated plainly
 

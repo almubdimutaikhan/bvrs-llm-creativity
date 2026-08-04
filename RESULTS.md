@@ -20,7 +20,9 @@ Nothing in this document is a quality claim. No human evaluation has been run.
 | scale | 50 runs · 1,010 candidates · 500 selection rounds |
 | cost | 1,607 calls · 5.03M tokens · **≈ $1.12** · 3.6 core-hours (30 workers) |
 
-Raw data: `results/runs.csv`, `results/candidates.csv`, `results/rounds.csv`.
+Raw data (archived — `results/` now holds sweep #2, see §9):
+`archived/sweep1/runs.csv`, `archived/sweep1/candidates.csv`,
+`archived/sweep1/rounds.csv`.
 
 ## 2. Run health — all guards passed
 
@@ -183,15 +185,68 @@ regenerated, because its prompts contain the pool.
    pool-size curve would be uninterpretable without it: "selection pressure does
    not matter" and "there was nothing to select between" produce the same graph.
 
-## 9. Reproduce
+## 9. Prompt change since this sweep — seeding the blind arm
+
+`prompts/generate_blind.txt` and `prompts/generate_sighted.txt` were rewritten
+after this sweep. **Any future run using them is not directly comparable to
+the data in this document**, especially the blind arm.
+
+**What changed.** The blind prompt used for sweep #1 was fully open: "propose
+ONE concept that solves the problem below," no anchor. Every blind call now
+opens with a fixed line instead:
+
+> SEED IDEA: Piezo Boots — piezoelectric sensors in the boot sole feeding
+> haptic actuators against the foot.
+
+and asks the model to build its own variant from that seed rather than
+restate it. The sighted prompt gained an explicit instruction to not overlap
+with any idea already in the pool ("TABLE 1") and to prioritize a wild,
+creative idea over feasibility or cost.
+
+**Why.** §5 already showed the unseeded blind arm converges on this exact
+mechanism without being asked to: 314 of 1,010 candidates (31%) carry one of
+five near-duplicate titles, all piezoelectric-sensors-in-the-sole. That
+convergence was treated as an accidental finding — noise the design had to
+explain away. But it is not going away with a different phrasing or a
+stronger model (§5, and the four-model pilot probe): it is the model's
+dominant prior for this brief. Leaving the blind prompt unseeded meant real
+API spend went toward measuring *which surface variant of the same idea* a
+call would land on, not toward the generate-and-eliminate mechanism the study
+exists to test. Seeding turns that convergence from an accidental confound
+into a controlled starting condition: every replicate now begins from the
+same fixed point, so a difference observed between arms or pool sizes going
+forward is attributable to the ladder mechanism, not to which idea a given
+replicate happened to free-associate to.
+
+**Judge also changed, separately.** Seeding fixes the generator side only —
+it has no bearing on Finding 1 (§3), the judge echoing presentation order.
+That gets addressed by a second, independent change for sweep #2: the
+selector moves from `deepseek/deepseek-chat-v3.1` to `google/gemini-2.5-flash`,
+per §4's own probe — Gemini was the only judge of the four tested showing
+above-chance content sensitivity at n=6 (75% vs. 17% chance), and unlike
+GPT-4o and Claude Sonnet 5 it did not outright ignore the output format. This
+is a probe-backed choice, not a validated fix: §4 also found Gemini's n=41
+self-consistency was no better than chance, so `n=40` is still not trustworthy
+without the Bradley–Terry redesign in §8 item 3.
+
+Sweep #1's own selector data (archived, §1) is unaffected by this — it still
+demonstrates the DeepSeek/positional-bias finding above regardless of what
+sweep #2 does.
+
+## 10. Reproduce
 
 ```bash
 python src/run_study.py --dry-run                     # the plan, 0 calls
-python src/analyze.py                                 # §2, §3 tables
-python scripts/probe_judges.py                        # §4 table
+python src/analyze.py                                 # §2, §3 tables, on whatever is currently in results/
+python scripts/probe_judges.py                         # §4 table, on whatever is currently in results/
 ```
 
-## 10. Method note worth keeping
+`analyze.py` and `probe_judges.py` read `results/`, which now holds sweep #2
+(seeded prompts, Gemini judge) — not the sweep #1 data this document
+describes. To reproduce §2/§3/§4 exactly as reported here, point them at
+`archived/sweep1/` instead (or copy those three CSVs back into `results/`).
+
+## 11. Method note worth keeping
 
 The order-consistency check in §4 should have been run on the *selector* before
 the sweep, not after. It costs ~60 calls and would have caught this for about 5%
